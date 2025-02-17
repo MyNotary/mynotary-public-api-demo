@@ -41,11 +41,11 @@ const API_KEY = 'f8634dda-ae9e-438d-a535-e4214b0a8926';
 
 /**
  * USER_ID : Identifiant de l'utilisateur sur MyNotary.
- * 54298 est l'identifiant de l'utilisateur de test sur l'environnement de pré-production.
+ * 54300 est l'identifiant de l'utilisateur de test sur l'environnement de pré-production.
  * Cet utilisateur est membre de l'organisation de test 5204.
  * info : John DOE - test+10001@mynotary.fr
  */
-const USER_ID = 54298;
+const USER_ID = 54300;
 
 const myNotaryApiClient = new MyNotaryApiClient({ apiKey: API_KEY });
 const storageClient = new DatabaseClient();
