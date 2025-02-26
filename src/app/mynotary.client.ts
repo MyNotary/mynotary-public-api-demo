@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 /**
- * Client pour l'API MyNotary contenant les méthodes principales pour créer des fiches des opérations et des contrats.
+ * Client pour l'API MyNotary contenant les méthodes principales pour créer des fiches, des opérations et des contrats.
  * La documentation complète est accessible sur https://app.mynotary.fr/api/doc
  */
 export class MyNotaryApiClient {
@@ -60,7 +60,7 @@ export class MyNotaryApiClient {
   /**
    * Un dossier peut contenir plusieurs offre d'achat ou plusieurs bon de visite. Chaque contrat a un offrant ou un
    * visiteur différent.
-   * Pour gérer ce cas la les fiches sont associées lors de la création du contrat grâce à l'attribut records.
+   * Pour gérer ce cas la, les fiches sont associées lors de la création du contrat grâce à l'attribut records.
    */
   async postContract(args: ContractNew): Promise<Contract> {
     const res = await this.client.post('/contracts', args);
@@ -162,7 +162,7 @@ type YesNo = 'oui' | 'non';
  * Représente une fiche de bien à créer.
  * Les champs listés sont ceux les plus couramment utilisés par les outils externes et représentent un taux de complétion
  * évelé des différents mandats de vente ou location.
- * Pour une liste complète des champs disponibles se référer à la documentation de l'API et l'endpoint GET /records/description
+ * Pour une liste complète des champs disponibles, se référer à la documentation de l'API et l'endpoint GET /records/description
  */
 export interface MyNotaryHouse {
   type:
@@ -441,7 +441,7 @@ export interface MyNotaryHouse {
     /**
      * Date de versement du dernier loyer. Format : timestamp en millisecondes
      */
-    loyer_derniere_date_paiement?: number;
+    loyer_derniere_date_paiement?: Timestamp;
 
     /**
      * Dans la cas d'un TRACFIN Vendeur (type = IMMOBILIER_VENTE_ANCIEN_TRACFIN_SIMPLE_VENDEUR)
@@ -499,7 +499,7 @@ export interface MyNotaryHouse {
  * Représente une fiche de contact à créer.
  * Les champs listés sont ceux les plus couramment utilisés par les outils externes et représentent un taux de complétion
  * évelé des différents mandats de vente ou location.
- * Pour une liste complète des champs disponibles se référer à la documentation de l'API et l'endpoint GET /records/description
+ * Pour une liste complète des champs disponibles, se référer à la documentation de l'API et l'endpoint GET /records/description
  */
 export interface MyNotaryContact {
   type: 'RECORD__PERSONNE__PHYSIQUE' | 'RECORD__PERSONNE__MORALE';
@@ -568,7 +568,7 @@ export interface MyNotaryContact {
     /**
      * Date de naissance. Format : timestamp en millisecondes
      */
-    informations_personnelles_date_naissance?: number;
+    informations_personnelles_date_naissance?: Timestamp;
 
     /**
      * Ville de naissance
@@ -576,7 +576,7 @@ export interface MyNotaryContact {
     informations_personnelles_ville_naissance?: string;
 
     /**
-     * Pays de naissance. Format : Code ISO 3166-1 alpha-2 (ex: FR pour France BE pour Belgique US pour États-Unis)
+     * Pays de naissance. Format : Code ISO 3166-1 alpha-2 (ex: FR pour France, BE pour Belgique, US pour États-Unis)
      */
     informations_personnelles_nationalite?: string;
 
@@ -664,7 +664,7 @@ export interface OperationNew {
 
   /**
    * Nom du dossier.
-   * Si non renseigné la nommenclature par defaut est utilisée
+   * Si non renseigné, la nommenclature par defaut est utilisée
    */
   label?: string;
   questions: {
@@ -868,7 +868,7 @@ export interface OperationNew {
     honoraires_location_bailleur?: number;
 
     /**
-     * Bailleur : Appliquer automatiquement le plafond légal pour les honoraires de visite constitution de dossier
+     * Bailleur : Appliquer automatiquement le plafond légal pour les honoraires de visite, constitution de dossier,
      * rédaction du bail (8/10/12 € par m2 en fonction de la zone automatiquement détectée grace au code postal du bien)
      * Si mandat_honoraires_mention = modalite_mention_honoraires_location_fixes
      * Utilisé uniquement dans la location.
@@ -882,7 +882,7 @@ export interface OperationNew {
     honoraires_etat_des_lieux_bailleur_automatique?: YesNo;
 
     /**
-     * Locataire : Appliquer automatiquement le plafond légal pour les honoraires de visite constitution de dossier
+     * Locataire : Appliquer automatiquement le plafond légal pour les honoraires de visite, constitution de dossier,
      * rédaction du bail (8/10/12 € par m2 en fonction de la zone automatiquement détectée grace au code postal du bien)
      * Utilisé uniquement dans la location.
      */
@@ -944,7 +944,7 @@ type OperationRecord = VenteRecord | LocationRecord;
 /**
  * Un dossier peut contenir plusieurs offre d'achat ou plusieurs bon de visite. Chaque contrat a un offrant ou un
  * visiteur différent.
- * Pour gérer ce cas la les fiches sont associées lors de la création du contrat.
+ * Pour gérer ce cas la, les fiches sont associées lors de la création du contrat.
  */
 export type ContractRecord = {
   OFFRANT?: number[];

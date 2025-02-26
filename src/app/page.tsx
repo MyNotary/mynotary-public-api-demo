@@ -171,7 +171,7 @@ export default function Home() {
           mandat_signature_electronique: 'oui',
           prix_vente_total: selectedHouse.price,
           /**
-           * Dans le cas d'un dossier Tracfin on peut pré-remplir les champs lié au TRACFIN
+           * Dans le cas d'un dossier Tracfin, on peut pré-remplir les champs lié au TRACFIN
            */
           ...(isTracfin(args.contractModelId) && {
             presence_client_vendeur: 'oui',
