@@ -16,28 +16,27 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions,
-  CircularProgress,
-  Snackbar,
-  Alert
+  DialogActions
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import React, { useEffect } from 'react';
 import { MyNotaryApiClient, OperationType } from '@/app/mynotary.client';
 import { ExpandLess, ExpandMore } from '@mui/icons-material';
 import { DatabaseClient, House } from '@/app/database.client';
+import { ContractSpecificExample } from './contract-specific';
+import { CreationSnackBar, Status } from './components';
 
 /**
  * ORGANIZATION_ID : Identifiant de l'organisation sur MyNotary. Il vous sera fourni par l'équipe MyNotary.
  * 5204 est l'identifiant de l'organisation de test sur l'envrionnement de pré-production.
  */
-const ORGANIZATION_ID = 5204;
+export const ORGANIZATION_ID = 5204;
 /**
  * API_KEY : Clé d'API pour accéder à l'API MyNotary. Elle vous sera fournie par l'équipe MyNotary.
  * f8634dda-ae9e-438d-a535-e4214b0a8926 est la clé d'API de l'application de test sur l'environnement de pré-production.
  * Cette application n'est autorisée qu'à effectuer des appels sur l'organisation de test 5204.
  */
-const API_KEY = 'f8634dda-ae9e-438d-a535-e4214b0a8926';
+export const API_KEY = 'f8634dda-ae9e-438d-a535-e4214b0a8926';
 
 /**
  * USER_ID : Identifiant de l'utilisateur sur MyNotary.
@@ -45,12 +44,12 @@ const API_KEY = 'f8634dda-ae9e-438d-a535-e4214b0a8926';
  * Cet utilisateur est membre de l'organisation de test 5204.
  * info : John DOE - test+10001@mynotary.fr
  */
-const USER_ID = 54300;
+export const USER_ID = 54351;
 
-const myNotaryApiClient = new MyNotaryApiClient({ apiKey: API_KEY });
-const storageClient = new DatabaseClient();
+export const myNotaryApiClient = new MyNotaryApiClient({ apiKey: API_KEY });
+export const storageClient = new DatabaseClient();
 
-interface SelectedContract {
+export interface SelectedContract {
   operationTypeId: string;
   contractModelId: string;
   contractModelLabel: string;
@@ -58,7 +57,7 @@ interface SelectedContract {
 
 export default function Home() {
   const [selectedHouse, setSelectedHouse] = React.useState<House | null>(null);
-  const [creatingStatus, setCreatingStatus] = React.useState<'idle' | 'loading' | 'completed' | 'error'>('idle');
+  const [creatingStatus, setCreatingStatus] = React.useState<Status>('idle');
   const houses = storageClient.getHouses();
 
   useEffect(() => {
@@ -139,7 +138,11 @@ export default function Home() {
             telephone: '+33612345678'
           }
         });
-        storageClient.addAssociation({ type: 'RECORD', externalId: 'external_app_vendeur_1', myNotaryId: vendeur.id });
+        storageClient.addAssociation({
+          type: 'RECORD',
+          externalId: 'external_app_vendeur_1',
+          myNotaryId: vendeur.id
+        });
         contactRecordId = vendeur.id;
       }
 
@@ -166,7 +169,23 @@ export default function Home() {
           mandat_frequence: 'systematique',
           mandat_recommande_electronique: 'oui',
           mandat_signature_electronique: 'oui',
-          prix_vente_total: selectedHouse.price
+          prix_vente_total: selectedHouse.price,
+          /**
+           * Dans le cas d'un dossier Tracfin on peut pré-remplir les champs lié au TRACFIN
+           */
+          ...(isTracfin(args.contractModelId) && {
+            presence_client_vendeur: 'oui',
+            piece_identite_vendeur: 'cni',
+            tracfin_age_vendeur_simple: 'oui',
+            tracfin_luxe_vendeur_simple: 'oui',
+            tracfin_observation_vendeur: 'oui',
+            tracfin_prix_vendeur_simple: 'oui',
+            tracfin_revenus_vendeur_simple: 'oui',
+            tracfin_politique_vendeur_simple: 'oui',
+            tracfin_profession_vendeur_simple: 'oui',
+            tracfin_operation_anormale_vendeur: 'oui',
+            tracfin_localisation_vendeur_simple: 'oui'
+          })
         }
       });
       storageClient.addAssociation({ type: 'OPERATION', externalId: selectedHouse.id, myNotaryId: operation.id });
@@ -262,37 +281,17 @@ export default function Home() {
         onClose={() => setSelectedHouse(null)}
         onContractSelection={handleContractCreation}
       />
-
-      <Snackbar open={creatingStatus === 'loading'}>
-        <Alert
-          icon={<CircularProgress color='inherit' size={20} sx={{ mr: 2 }} />}
-          severity='info'
-          variant='filled'
-          sx={{ width: '100%' }}
-        >
-          Création du contrat en cours...
-        </Alert>
-      </Snackbar>
-
-      <Snackbar open={creatingStatus === 'completed'} autoHideDuration={6000} onClose={() => setCreatingStatus('idle')}>
-        <Alert severity='success' variant='filled' sx={{ width: '100%' }}>
-          Création du contrat terminée !
-        </Alert>
-      </Snackbar>
-
-      <Snackbar open={creatingStatus === 'error'} autoHideDuration={12000} onClose={() => setCreatingStatus('idle')}>
-        <Alert severity='error' variant='filled' sx={{ width: '100%' }}>
-          Erreur lors de la création du contrat
-        </Alert>
-      </Snackbar>
+      <CreationSnackBar status={creatingStatus} onClose={() => setCreatingStatus('idle')} />
+      <ContractSpecificExample />
     </>
   );
 }
 
-const ContractSelectionDialog = (props: {
+export const ContractSelectionDialog = (props: {
   open: boolean;
   onClose: () => void;
   onContractSelection: (args: SelectedContract) => void;
+  filteringStrategy?: (operationtype: OperationType[]) => OperationType[];
 }) => {
   const [operationTypes, setOperationTypes] = React.useState<OperationType[]>([]);
   const [loadingStatus, setLoadingStatus] = React.useState<'idle' | 'loading' | 'completed' | 'error'>('idle');
@@ -307,6 +306,8 @@ const ContractSelectionDialog = (props: {
     }
   }, [loadingStatus, props.open]);
 
+  const operationTypesFiltered = props.filteringStrategy ? props.filteringStrategy(operationTypes) : operationTypes;
+
   return (
     <Dialog fullScreen open={props.open} onClose={props.onClose}>
       <AppBar sx={{ position: 'relative' }}>
@@ -319,7 +320,7 @@ const ContractSelectionDialog = (props: {
       {loadingStatus === 'loading' && <Typography>Chargement en cours...</Typography>}
       {loadingStatus === 'error' && <Typography>Erreur lors du chargement des contrats</Typography>}
       {loadingStatus === 'completed' && (
-        <ContractList organizationOperations={operationTypes} onContractSelection={props.onContractSelection} />
+        <ContractList organizationOperations={operationTypesFiltered} onContractSelection={props.onContractSelection} />
       )}
     </Dialog>
   );
@@ -407,3 +408,7 @@ const ContractList = (props: {
     </Box>
   );
 };
+
+function isTracfin(contractType: string): boolean {
+  return contractType === 'IMMOBILIER_VENTE_ANCIEN_TRACFIN_SIMPLE_VENDEUR';
+}
