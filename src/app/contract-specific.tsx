@@ -1,14 +1,7 @@
 import { Button, Card, Grid2, Typography } from '@mui/material';
-import {
-  ContractSelectionDialog,
-  myNotaryApiClient,
-  ORGANIZATION_ID,
-  SelectedContract,
-  storageClient,
-  USER_ID
-} from './page';
+import { ContractSelectionDialog, myNotaryApiClient, SelectedContract, storageClient, USER_ID } from './page';
 import React from 'react';
-import { ContractRecord, ContractSpecificQuestions, OperationType } from './mynotary.client';
+import { OperationType } from './mynotary.client';
 import { CodeInfo, CreationSnackBar, OperationCreationCtx, SpecfiqueContractInfo, Status } from './components';
 import {
   createBienBody,
@@ -119,8 +112,9 @@ export const ContractSpecificExample = () => {
     <div>
       <h1>Exemple de création avec des informations spécifique à un contrat </h1>
       <p>
-        Dans certains cas, comme un contrat de type "offre d'achat" ou 'bon de visite', nous devons créer des
-        informations et des fiches spécifiques à ce contrat.
+        {
+          " Dans certains cas, comme un contrat de type 'offre d'achat' ou 'bon de visite', nous devons créer des informations et des fiches spécifiques à ce contrat."
+        }
       </p>
       <Grid2 container spacing={2} sx={{ m: 4 }}>
         {houses.map((house) => {

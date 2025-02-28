@@ -1,4 +1,4 @@
-import { Alert, CircularProgress, Grid2, Snackbar, Stack, Typography } from '@mui/material';
+import { Alert, CircularProgress, Snackbar, Stack, Typography } from '@mui/material';
 import { House } from './database.client';
 import {
   createBienBody,
