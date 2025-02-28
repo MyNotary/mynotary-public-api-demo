@@ -13,7 +13,7 @@ L'UX est volontairement simpliste car ce n'est pas l'objectif principal.
   base de donnée de l'outil métier
 - `src/app/mynotary.client.ts`: Simule un client pour l'API publique MyNotary. Il permet de récupérer les types de
   dossiers et contrats disponibles et de créer un contrat
-  - `src/app/page.tsx`: Page principale de l'application. Elle affiche la liste des biens disponbiles dans l'outil
+  - `src/app/page.tsx`: Page principale de l'application. Elle affiche la liste des biens disponibles dans l'outil
     métier et permet de créer un contrat à partir d'un bien.
 
 ## Lancer le projet
