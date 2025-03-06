@@ -8,7 +8,7 @@
  *
  * En situation réelle, cette classe serait implémentée dans un service de stockage de données persitant (ex: base de données)
  */
-export class DatabaseClient {
+class DatabaseClient {
   private associations: Association[] = [];
 
   public addAssociation(association: Association): void {
@@ -16,7 +16,7 @@ export class DatabaseClient {
     this.saveAssociations();
   }
 
-  public findMynotaryRecordId(externalId: string): number | undefined {
+  public findMyNotaryRecordLocalDatabase(externalId: string): number | undefined {
     const association = this.associations.find(
       (association) => association.externalId === externalId && association.type === 'RECORD'
     );
@@ -93,3 +93,5 @@ export interface House {
   price: number;
   surface: number;
 }
+
+export const databaseClient = new DatabaseClient();

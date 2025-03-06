@@ -1,10 +1,12 @@
 import axios from 'axios';
 
+import { API_KEY } from '@/app/config';
+
 /**
  * Client pour l'API MyNotary contenant les méthodes principales pour créer des fiches, des opérations et des contrats.
  * La documentation complète est accessible sur https://app.mynotary.fr/api/doc
  */
-export class MyNotaryApiClient {
+class MyNotaryApiClient {
   client;
 
   constructor(args: { apiKey: string }) {
@@ -163,6 +165,7 @@ type YesNo = 'oui' | 'non';
  * Les champs listés sont ceux les plus couramment utilisés par les outils externes et représentent un taux de complétion
  * évelé des différents mandats de vente ou location.
  * Pour une liste complète des champs disponibles, se référer à la documentation de l'API et l'endpoint GET /records/description
+ * ou en complétant un contrat depuis la plateforme et en inspectant le network pour voir l'id du champ.
  */
 export interface MyNotaryHouse {
   type:
@@ -442,56 +445,6 @@ export interface MyNotaryHouse {
      * Date de versement du dernier loyer. Format : timestamp en millisecondes
      */
     loyer_derniere_date_paiement?: Timestamp;
-
-    /**
-     * Dans la cas d'un TRACFIN Vendeur (type = IMMOBILIER_VENTE_ANCIEN_TRACFIN_SIMPLE_VENDEUR)
-     */
-
-    /**
-     * Rencontre physique avec le client
-     */
-    presence_client_vendeur?: YesNo;
-    /**
-     * Dans le cas d'une rencontre avec le vendeur, Type de pièce d'identité fournis
-     */
-    piece_identite_vendeur?: 'cni' | 'passeport' | 'sejour';
-
-    /**
-     * Il y a une incohérence entre l'âge du Vendeur et son statut
-     */
-    tracfin_age_vendeur_simple?: YesNo;
-    /**
-     * La vente porte sur un Bien de luxe ou de prestige
-     */
-    tracfin_luxe_vendeur_simple?: YesNo;
-    /**
-     * Observation à ajouter
-     */
-    tracfin_observation_vendeur?: YesNo;
-    /**
-     *   Il y a une incohérence entre les revenus et le train de vie du Vendeur
-     */
-    tracfin_prix_vendeur_simple?: YesNo;
-    /**
-     * Il y a une incohérence entre les revenus et le train de vie du Vendeur
-     */
-    tracfin_revenus_vendeur_simple?: YesNo;
-    /**
-     * Le Vendeur est une personne politiquement exposée (diplomate, haute fonction publique...)
-     */
-    tracfin_politique_vendeur_simple?: YesNo;
-    /**
-     * La profession du Vendeur se situe dans un secteur à risque
-     */
-    tracfin_profession_vendeur_simple?: YesNo;
-    /**
-     * Opération anormale ou inhabituelle
-     */
-    tracfin_operation_anormale_vendeur?: YesNo;
-    /**
-     * Le Bien est situé dans une zone à risque
-     */
-    tracfin_localisation_vendeur_simple?: YesNo;
   };
 }
 
@@ -500,6 +453,7 @@ export interface MyNotaryHouse {
  * Les champs listés sont ceux les plus couramment utilisés par les outils externes et représentent un taux de complétion
  * évelé des différents mandats de vente ou location.
  * Pour une liste complète des champs disponibles, se référer à la documentation de l'API et l'endpoint GET /records/description
+ * ou en complétant un contrat depuis la plateforme et en inspectant le network pour voir l'id du champ.
  */
 export interface MyNotaryContact {
   type: 'RECORD__PERSONNE__PHYSIQUE' | 'RECORD__PERSONNE__MORALE';
@@ -651,6 +605,13 @@ interface Operation {
   link: string;
 }
 
+/**
+ * Représente une operation à créer.
+ * Les champs listés sont ceux les plus couramment utilisés par les outils externes et représentent un taux de complétion
+ * évelé des différents mandats de vente ou location.
+ * Pour une liste complète des champs disponibles, se référer à la documentation de l'API et l'endpoint GET /operations/description
+ * ou en complétant un contrat depuis la plateforme et en inspectant le network pour voir l'id du champ.
+ */
 export interface OperationNew {
   /**
    * Type d'opération.
@@ -923,6 +884,61 @@ export interface OperationNew {
      * Utilisé uniquement dans la location professionnelle.
      */
     honoraires_prestation_etat_des_lieux_locataire?: number;
+
+    /**
+     * Information sur le tracfin vendeur
+     */
+
+    /**
+     * Rencontre physique avec le client
+     */
+    presence_client_vendeur?: YesNo;
+    /**
+     * Dans le cas d'une rencontre avec le vendeur, Type de pièce d'identité fournis
+     * Valeurs possibles :
+     * - cni : Carte d'idendité
+     * - passeport : Passeport
+     * - sejour : Titre de séjour
+     */
+    piece_identite_vendeur?: 'cni' | 'passeport' | 'sejour';
+
+    /**
+     * Il y a une incohérence entre l'âge du Vendeur et son statut
+     */
+    tracfin_age_vendeur_simple?: YesNo;
+    /**
+     * La vente porte sur un Bien de luxe ou de prestige
+     */
+    tracfin_luxe_vendeur_simple?: YesNo;
+    /**
+     * Observation à ajouter
+     */
+    tracfin_observation_vendeur?: YesNo;
+    /**
+     *   Il y a une incohérence entre les revenus et le train de vie du Vendeur
+     */
+    tracfin_prix_vendeur_simple?: YesNo;
+    /**
+     * Il y a une incohérence entre les revenus et le train de vie du Vendeur
+     */
+    tracfin_revenus_vendeur_simple?: YesNo;
+    /**
+     * Le Vendeur est une personne politiquement exposée (diplomate, haute fonction publique...)
+     */
+    tracfin_politique_vendeur_simple?: YesNo;
+    /**
+     * La profession du Vendeur se situe dans un secteur à risque
+     */
+    tracfin_profession_vendeur_simple?: YesNo;
+    /**
+     * Opération anormale ou inhabituelle
+     */
+    tracfin_operation_anormale_vendeur?: YesNo;
+    /**
+     * Le Bien est situé dans une zone à risque
+     */
+    tracfin_localisation_vendeur_simple?: YesNo;
+
   };
 }
 
@@ -977,3 +993,5 @@ export interface OperationType {
     label: string;
   }[];
 }
+
+export const myNotaryApiClient = new MyNotaryApiClient({ apiKey: API_KEY });

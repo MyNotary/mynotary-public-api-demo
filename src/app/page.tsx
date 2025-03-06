@@ -1,53 +1,18 @@
 'use client';
-import {
-  AppBar,
-  Box,
-  Toolbar,
-  Typography,
-  Button,
-  Card,
-  Grid2,
-  IconButton,
-  List,
-  ListItemButton,
-  Dialog,
-  ListItemText,
-  Collapse,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { AppBar, Box, Button, Card, Grid2, Toolbar, Typography } from '@mui/material';
 import React, { useEffect } from 'react';
-import { MyNotaryApiClient, OperationType } from '@/app/mynotary.client';
-import { ExpandLess, ExpandMore } from '@mui/icons-material';
-import { DatabaseClient, House } from '@/app/database.client';
-import { ContractSpecificExample } from './contract-specific';
-import { CreationSnackBar, Status } from './components';
-
-/**
- * ORGANIZATION_ID : Identifiant de l'organisation sur MyNotary. Il vous sera fourni par l'équipe MyNotary.
- * 5204 est l'identifiant de l'organisation de test sur l'envrionnement de pré-production.
- */
-export const ORGANIZATION_ID = 5204;
-/**
- * API_KEY : Clé d'API pour accéder à l'API MyNotary. Elle vous sera fournie par l'équipe MyNotary.
- * f8634dda-ae9e-438d-a535-e4214b0a8926 est la clé d'API de l'application de test sur l'environnement de pré-production.
- * Cette application n'est autorisée qu'à effectuer des appels sur l'organisation de test 5204.
- */
-export const API_KEY = 'f8634dda-ae9e-438d-a535-e4214b0a8926';
-
-/**
- * USER_ID : Identifiant de l'utilisateur sur MyNotary.
- * 54300 est l'identifiant de l'utilisateur de test sur l'environnement de pré-production.
- * Cet utilisateur est membre de l'organisation de test 5204.
- * info : John DOE - application-example@mynotary.fr
- */
-export const USER_ID = 54354;
-
-export const myNotaryApiClient = new MyNotaryApiClient({ apiKey: API_KEY });
-export const storageClient = new DatabaseClient();
+import { myNotaryApiClient } from '@/app/data/mynotary.client';
+import { databaseClient, House } from '@/app/data/database.client';
+import { Snackbars, Status } from './components/snackbars';
+import { USER_ID } from '@/app/config';
+import { ContractListDialog } from '@/app/components/contract-list-dialog';
+import {
+  createBienBody,
+  createContractBody,
+  createOperationBody,
+  createPersonnePhysiqueBody,
+  findOrCreateRecord
+} from '@/app/data/data-mapping-utils';
 
 export interface SelectedContract {
   operationTypeId: string;
@@ -55,13 +20,13 @@ export interface SelectedContract {
   contractModelLabel: string;
 }
 
-export default function Home() {
+export default function CreateBasicOperationExample() {
   const [selectedHouse, setSelectedHouse] = React.useState<House | null>(null);
   const [creatingStatus, setCreatingStatus] = React.useState<Status>('idle');
-  const houses = storageClient.getHouses();
+  const houses = databaseClient.getHouses();
 
   useEffect(() => {
-    storageClient.loadAssociations();
+    databaseClient.loadAssociations();
   }, []);
 
   /**
@@ -84,111 +49,31 @@ export default function Home() {
     setSelectedHouse(null);
 
     try {
-      let houseRecordId = storageClient.findMynotaryRecordId(selectedHouse.id);
-
-      if (houseRecordId == null) {
-        const house = await myNotaryApiClient.postRecord({
-          creatorId: USER_ID,
-          organizationId: ORGANIZATION_ID,
-          type: 'RECORD__BIEN__LOT_HABITATION',
-          questions: {
-            adresse: {
-              codePostal: selectedHouse.address.zipCode,
-              ville: selectedHouse.address.city,
-              rue: selectedHouse.address.street,
-              pays: selectedHouse.address.country
-            },
-            numero_lot: 'A1',
-            designation: 'Appartement 1',
-            nature_bien: 'nature_bien_appartement',
-            occupation_statut: 'oui',
-            occupation_location: 'location_bail',
-            mesurage_carrez_statut: 'oui',
-            mesurage_carrez_superficie: selectedHouse.surface,
-            surface_habitable: 80
-          }
-        });
-        houseRecordId = house.id;
-        storageClient.addAssociation({ type: 'RECORD', externalId: selectedHouse.id, myNotaryId: house.id });
-      }
-
-      let contactRecordId = storageClient.findMynotaryRecordId('external_app_vendeur_1');
-
-      if (contactRecordId == null) {
-        const vendeur = await myNotaryApiClient.postRecord({
-          creatorId: USER_ID,
-          organizationId: ORGANIZATION_ID,
-          type: 'RECORD__PERSONNE__PHYSIQUE',
-          questions: {
-            sexe: 'homme',
-            nom: 'Doe',
-            prenoms: 'Jean-Michel',
-            informations_personnelles_date_naissance: 569977200000,
-            informations_personnelles_ville_naissance: 'Paris',
-            informations_personnelles_nationalite: 'FR',
-            informations_personnelles_resident_fiscal: 'oui',
-            informations_personnelles_profession: 'Professeur',
-            email: 'john.doe@gmail.com',
-            adresse: {
-              codePostal: '75001',
-              ville: 'Paris',
-              rue: '1 rue de Rivoli',
-              pays: 'France'
-            },
-            telephone: '+33612345678'
-          }
-        });
-        storageClient.addAssociation({
-          type: 'RECORD',
-          externalId: 'external_app_vendeur_1',
-          myNotaryId: vendeur.id
-        });
-        contactRecordId = vendeur.id;
-      }
+      const houseRecordId = await findOrCreateRecord({
+        body: createBienBody(selectedHouse),
+        externalId: selectedHouse.id
+      });
+      const contactRecordId = await findOrCreateRecord({
+        body: createPersonnePhysiqueBody({
+          email: 'jean-dupont@gmail.com',
+          nom: 'DUPONT',
+          prenoms: 'Jean'
+        }),
+        externalId: 'jean-dupont@gmail.com'
+      });
 
       /**
-       * Inutile de conditionner le mapping des champs en fonction du type de dossier car les champs non utilisées
-       * seront automatiquement ignorées.
+       * Il est important de noter qu'il n'est pas nécessaire de conditionner le mapping des champs en fonction du
+       * type de dossier ou de contract car les champs non utilisées seront automatiquement ignorées, la condition
+       * est la à titre d'exemple.
        */
-      const operation = await myNotaryApiClient.postOperation({
-        creatorId: USER_ID,
-        organizationId: ORGANIZATION_ID,
-        type: args.operationTypeId,
-        questions: {
-          mandat_tapuscrit: 'non',
-          mandat_type: 'semi',
-          mandat_numero: '8',
-          mandat_semi_conditions: 'mandat_semi_agence_unique',
-          mandat_cadastre: 'non',
-          mandat_vente_calcul: 'recherche_fixe',
-          mandat_honoraires_charge: 'honoraires_charge_vendeur',
-          mandat_duree: 3,
-          mandat_duree_recondution: 9,
-          mandat_duree_recondution_totale: 12,
-          mandant_statut: 'personnelles',
-          mandat_frequence: 'systematique',
-          mandat_recommande_electronique: 'oui',
-          mandat_signature_electronique: 'oui',
-          prix_vente_total: selectedHouse.price,
-          /**
-           * Dans le cas d'un dossier Tracfin, on peut pré-remplir les champs lié au TRACFIN
-           */
-          ...(isTracfin(args.contractModelId) && {
-            presence_client_vendeur: 'oui',
-            piece_identite_vendeur: 'cni',
-            tracfin_age_vendeur_simple: 'oui',
-            tracfin_luxe_vendeur_simple: 'oui',
-            tracfin_observation_vendeur: 'oui',
-            tracfin_prix_vendeur_simple: 'oui',
-            tracfin_revenus_vendeur_simple: 'oui',
-            tracfin_politique_vendeur_simple: 'oui',
-            tracfin_profession_vendeur_simple: 'oui',
-            tracfin_operation_anormale_vendeur: 'oui',
-            tracfin_localisation_vendeur_simple: 'oui'
-          })
-        }
-      });
-      storageClient.addAssociation({ type: 'OPERATION', externalId: selectedHouse.id, myNotaryId: operation.id });
+      const operation = await myNotaryApiClient.postOperation(
+        createOperationBody({
+          selectedHouse,
+          operationTypeId: args.operationTypeId
+        })
+      );
+      databaseClient.addAssociation({ type: 'OPERATION', externalId: selectedHouse.id, myNotaryId: operation.id });
 
       if (
         args.operationTypeId == 'OPERATION__IMMOBILIER__VENTE_ANCIEN' ||
@@ -215,12 +100,12 @@ export default function Home() {
         });
       }
 
-      const contract = await myNotaryApiClient.postContract({
-        userId: USER_ID,
+      const contractBody = await createContractBody({
         operationId: operation.id,
-        type: args.contractModelId,
-        label: args.contractModelId
+        contractModelId: args.contractModelId,
+        contractLabel: args.contractModelLabel
       });
+      const contract = await myNotaryApiClient.postContract(contractBody);
 
       window.open(contract.link, '_blank')?.focus();
 
@@ -232,7 +117,7 @@ export default function Home() {
   };
 
   const handleOperationAccess = async (house: House) => {
-    const myNotaryOperationId = storageClient.findMynotaryOperationId(house.id);
+    const myNotaryOperationId = databaseClient.findMynotaryOperationId(house.id);
     if (myNotaryOperationId == null) {
       throw new Error('No operation found for this house');
     }
@@ -250,7 +135,7 @@ export default function Home() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Button
                 color='error'
-                onClick={() => storageClient.clearAssociations()}
+                onClick={() => databaseClient.clearAssociations()}
                 sx={{ ml: 'auto', color: 'white' }}
                 variant='contained'
               >
@@ -263,7 +148,7 @@ export default function Home() {
 
       <Grid2 container spacing={2} sx={{ m: 4 }}>
         {houses.map((house) => {
-          const operationId = storageClient.findMynotaryOperationId(house.id);
+          const operationId = databaseClient.findMynotaryOperationId(house.id);
           return (
             <Card key={house.id} raised={true} sx={{ p: 2, m: 2 }}>
               <Typography variant='h6'>{`${house.address.street} ${house.address.zipCode} ${house.address.city}`}</Typography>
@@ -276,139 +161,12 @@ export default function Home() {
         })}
       </Grid2>
 
-      <ContractSelectionDialog
+      <ContractListDialog
         open={selectedHouse != null}
         onClose={() => setSelectedHouse(null)}
         onContractSelection={handleContractCreation}
       />
-      <CreationSnackBar status={creatingStatus} onClose={() => setCreatingStatus('idle')} />
-      <ContractSpecificExample />
+      <Snackbars status={creatingStatus} onClose={() => setCreatingStatus('idle')} />
     </>
   );
-}
-
-export const ContractSelectionDialog = (props: {
-  open: boolean;
-  onClose: () => void;
-  onContractSelection: (args: SelectedContract) => void;
-  filteringStrategy?: (operationtype: OperationType[]) => OperationType[];
-}) => {
-  const [operationTypes, setOperationTypes] = React.useState<OperationType[]>([]);
-  const [loadingStatus, setLoadingStatus] = React.useState<'idle' | 'loading' | 'completed' | 'error'>('idle');
-
-  useEffect(() => {
-    if (props.open && loadingStatus === 'idle') {
-      myNotaryApiClient
-        .getOperationTypes({ organizationId: ORGANIZATION_ID })
-        .then(setOperationTypes)
-        .catch(() => setLoadingStatus('error'))
-        .finally(() => setLoadingStatus('completed'));
-    }
-  }, [loadingStatus, props.open]);
-
-  const operationTypesFiltered = props.filteringStrategy ? props.filteringStrategy(operationTypes) : operationTypes;
-
-  return (
-    <Dialog fullScreen open={props.open} onClose={props.onClose}>
-      <AppBar sx={{ position: 'relative' }}>
-        <Toolbar>
-          <IconButton edge='start' color='inherit' onClick={props.onClose} aria-label='close'>
-            <CloseIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-      {loadingStatus === 'loading' && <Typography>Chargement en cours...</Typography>}
-      {loadingStatus === 'error' && <Typography>Erreur lors du chargement des contrats</Typography>}
-      {loadingStatus === 'completed' && (
-        <ContractList organizationOperations={operationTypesFiltered} onContractSelection={props.onContractSelection} />
-      )}
-    </Dialog>
-  );
-};
-
-/**
- * Liste les types de dossiers et les contrats associés à chaque type de dossier
- */
-const ContractList = (props: {
-  organizationOperations: OperationType[];
-  onContractSelection: (args: SelectedContract) => void;
-}) => {
-  const [selectedOperationTypeId, setSelectedOperationTypeId] = React.useState<string | null>(null);
-  const [selectedContract, setSelectedContract] = React.useState<{ modelId: string; label: string } | null>(null);
-
-  const handleOperationClick = (operationTypeId: string) => {
-    if (selectedOperationTypeId === operationTypeId) {
-      setSelectedOperationTypeId(null);
-    } else {
-      setSelectedOperationTypeId(operationTypeId);
-    }
-  };
-
-  const handleContractSelection = () => {
-    if (selectedOperationTypeId == null) {
-      throw new Error('No operation type selected');
-    }
-
-    if (selectedContract == null) {
-      throw new Error('No contract selected');
-    }
-
-    props.onContractSelection({
-      operationTypeId: selectedOperationTypeId,
-      contractModelId: selectedContract.modelId,
-      contractModelLabel: selectedContract.label
-    });
-  };
-
-  return (
-    <Box>
-      <Typography variant='h5' sx={{ p: 2, m: 2, textAlign: 'center' }}>
-        Sélectionnez le type de dossier et le type de contrat
-      </Typography>
-      <List sx={{ width: '100%', maxWidth: 800, m: 'auto' }}>
-        {props.organizationOperations.map((operation) => {
-          const isOperationTypeSelected = selectedOperationTypeId === operation.id;
-          return (
-            <React.Fragment key={operation.id}>
-              <ListItemButton selected={isOperationTypeSelected} onClick={() => handleOperationClick(operation.id)}>
-                <>
-                  <ListItemText primary={operation.label} />
-                  {isOperationTypeSelected ? <ExpandLess /> : <ExpandMore />}
-                </>
-              </ListItemButton>
-              <Collapse in={isOperationTypeSelected} timeout='auto' unmountOnExit>
-                <List component='div' disablePadding sx={{ backgroundColor: 'rgba(0, 0, 0, 0.03)' }}>
-                  {operation.contracts.map((contract) => (
-                    <ListItemButton key={contract.modelId} sx={{ pl: 4 }} onClick={() => setSelectedContract(contract)}>
-                      <ListItemText primary={contract.label} />
-                    </ListItemButton>
-                  ))}
-                </List>
-              </Collapse>
-            </React.Fragment>
-          );
-        })}
-      </List>
-
-      <Dialog open={selectedContract !== null} onClose={() => setSelectedContract(null)}>
-        <DialogTitle>{`Créer un "${selectedContract?.label}" ?`}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {`Êtes-vous sûr de vouloir créer un contrat de type "${selectedContract?.label}" ? Les données du bien et des
-            contacts seront récupérées et vous allez être redirigé vers l'interface de MyNotary.`}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedContract(null)}>Annuler</Button>
-          <Button onClick={handleContractSelection} autoFocus>
-            Confirmer
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
-};
-
-function isTracfin(contractType: string): boolean {
-  return contractType === 'IMMOBILIER_VENTE_ANCIEN_TRACFIN_SIMPLE_VENDEUR';
 }
