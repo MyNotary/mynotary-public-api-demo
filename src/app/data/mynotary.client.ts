@@ -139,9 +139,6 @@ export interface ContractNew {
   type: string;
   records?: ContractRecord;
   userId: number;
-  /**
-   * Représente une fiche de bien à créer.
-   */
   questions?: ContractSpecificQuestions;
 }
 
