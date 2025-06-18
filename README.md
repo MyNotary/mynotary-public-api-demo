@@ -9,8 +9,6 @@ L'UX est volontairement simpliste car ce n'est pas l'objectif principal.
 
 ## Structure du projet
 
-## Structure du projet
-
 - `src/app/components/contract-list-dialog.tsx` : Composant de dialogue permettant de sélectionner un type de dossier et
   un type de contrat. Les types de dossiers et les contrats associés sont récupérés depuis l'API MyNotary.
 - `src/app/components/snackbars.tsx` : Composant pour afficher des notifications (snackbars) indiquant l'état de la
@@ -42,3 +40,87 @@ L'UX est volontairement simpliste car ce n'est pas l'objectif principal.
 
 Les valeurs fournies dans `config.ts` permettent déjà d'utiliser le projet mais vous pouvez mettre à jour les variables
 `ORGANIZATION_ID`, `USER_ID` et `API_KEY` dans le fichier `src/app/page.tsx` avec les valeurs fournies par MyNotary.
+
+## Récupérer les honoraires
+
+Les honoraires peuvent être fixes ou en pourcentage et modifier dans un avenant tout comme le prix de vente. Voici une fonction utilitaire qui gère les différents scénarios possibles :
+
+```typescript
+type OperationAnswer = {
+  mandat_avenant_type?: Array<'avenant_prix' | 'avenant_honoraires' | 'avenant_libre'>;
+  mandat_honoraires_charge?: 'honoraires_charge_vendeur' | 'honoraires_charge_acquereur' | 'honoraires_charge_double';
+  mandat_honoraires_montant?: number;
+  mandat_nouveau_honoraires_montant?: number;
+  mandat_numero?: string;
+  mandat_numero_transaction?: string;
+  mandat_pourcentage_honoraires_vente_total?: number;
+  mandat_pourcentage_nouveau_honoraires_vente_total?: number;
+  mandat_vente_calcul?: 'recherche_pourcentage' | 'recherche_fixe';
+  nouveau_prix_de_vente?: number;
+  prix_vente_total?: number;
+};
+
+const getPrixVente = (answer: OperationAnswer) => {
+  if (answer.mandat_avenant_type?.includes('avenant_prix') && answer.nouveau_prix_de_vente != null) {
+    return answer.nouveau_prix_de_vente;
+  }
+  return answer.prix_vente_total;
+};
+
+/**
+ * Retourne les honoraires en montant fixe en fonction des réponses.
+ *
+ * cas 1: un avenant avec modification d'honoraire fixe
+ * cas 2: un avenant avec modification d'honoraire en pourcentage
+ * cas 3: pas d'avenant, honoraires fixe
+ * cas 4: pas d'avenant, honoraires en pourcentage
+ *
+ * @param answer les réponses du dossier
+ */
+const getHonoraire = (answer: OperationAnswer): number | undefined => {
+  const prixVente = getPrixVente(answer);
+
+  if (
+    answer.mandat_avenant_type?.includes('avenant_honoraires') &&
+    answer.mandat_vente_calcul === 'recherche_fixe' &&
+    answer.mandat_nouveau_honoraires_montant != null
+  ) {
+    return answer.mandat_nouveau_honoraires_montant;
+  } else if (
+    answer.mandat_avenant_type?.includes('avenant_honoraires') &&
+    answer.mandat_vente_calcul === 'recherche_pourcentage' &&
+    answer.mandat_pourcentage_nouveau_honoraires_vente_total != null &&
+    prixVente != null
+  ) {
+    return (prixVente * answer.mandat_pourcentage_nouveau_honoraires_vente_total) / 100;
+  } else if (answer.mandat_vente_calcul === 'recherche_fixe' && answer.mandat_honoraires_montant != null) {
+    return answer.mandat_honoraires_montant;
+  } else if (
+    answer.mandat_vente_calcul === 'recherche_pourcentage' &&
+    answer.mandat_pourcentage_honoraires_vente_total != null &&
+    prixVente != null
+  ) {
+    return (prixVente * answer.mandat_pourcentage_honoraires_vente_total) / 100;
+  }
+  return undefined;
+};
+
+type LegalOperationType =
+  | 'OPERATION__TROIS_G_IMMO__TROIS_G_IMMO_LOCATION_BIENS_PROFESSIONNELS'
+  | 'OPERATION__TROIS_G_IMMO__TROIS_G_IMMO_LOCATION_HABITATION'
+  | 'OPERATION__TROIS_G_IMMO__TROIS_G_IMMO_VENTE_ANCIEN'
+  | 'OPERATION__TROIS_G_IMMO__TROIS_G_IMMO_VENTE_BIENS_PROFESSIONNELS'
+  | 'OPERATION__TROIS_G_IMMO__TROIS_G_IMMO_VIAGER';
+
+const getNumeroMandat = (answer: OperationAnswer, legalOperationType: LegalOperationType): string | undefined => {
+  if (
+    legalOperationType === 'OPERATION__TROIS_G_IMMO__TROIS_G_IMMO_LOCATION_BIENS_PROFESSIONNELS' ||
+    legalOperationType === 'OPERATION__TROIS_G_IMMO__TROIS_G_IMMO_LOCATION_HABITATION'
+  ) {
+    return answer.mandat_numero_transaction;
+  }
+
+  return answer.mandat_numero;
+};
+```
+
